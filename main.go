@@ -1,10 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 
 	"github.com/carlbark/gator/internal/config"
+	"github.com/carlbark/gator/internal/database"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -15,9 +18,17 @@ func main() {
 		return
 	}
 
-	s := &state{cfg: &cfg}
+	db, err := sql.Open("postgres", cfg.Url)
+	if err != nil {
+		fmt.Println("Error opening database connection:", err)
+		return
+	}
+	dbQueries := database.New(db)
+
+	s := &state{cfg: &cfg, db: dbQueries}
 	cs := &commands{cmds: make(map[string]func(*state, command) error)}
 	cs.register("login", handlerLogin)
+	cs.register("register", handlerRegister)
 
 	input := os.Args
 	if len(input) < 2 {

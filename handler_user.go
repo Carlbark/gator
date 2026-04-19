@@ -1,7 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"time"
+
+	"github.com/carlbark/gator/internal/database"
+	"github.com/google/uuid"
 )
 
 func handlerLogin(s *state, cmd command) error {
@@ -9,7 +14,38 @@ func handlerLogin(s *state, cmd command) error {
 		return fmt.Errorf("username is required")
 	}
 	username := cmd.args[0]
-	err := s.cfg.SetUser(username)
+	user, err := s.db.GetUser(context.Background(), username)
+	if err != nil {
+		return fmt.Errorf("User %v does not exist in database: %w", username, err)
+	}
+
+	err = s.cfg.SetUser(username)
+	if err != nil {
+		return fmt.Errorf("failed to set user: %w", err)
+	}
+	fmt.Printf("Logged in as: %+v\n", user)
+	return nil
+}
+
+func handlerRegister(s *state, cmd command) error {
+	if len(cmd.args) < 1 {
+		return fmt.Errorf("username is required")
+	}
+	username := cmd.args[0]
+
+	regData := database.CreateUserParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      username,
+	}
+
+	dbUser, err := s.db.CreateUser(context.Background(), regData)
+	if err != nil {
+		return fmt.Errorf("Failed to add user (probably already exists): %w", err)
+	}
+	fmt.Printf("User added: %+v\n", dbUser)
+	err = s.cfg.SetUser(username)
 	if err != nil {
 		return fmt.Errorf("failed to set user: %w", err)
 	}
