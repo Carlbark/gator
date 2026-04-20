@@ -29,6 +29,8 @@ func main() {
 	cs := &commands{cmds: make(map[string]func(*state, command) error)}
 	cs.register("login", handlerLogin)
 	cs.register("register", handlerRegister)
+	cs.register("reset", handlerReset)
+	cs.register("users", handlerUsers)
 
 	input := os.Args
 	if len(input) < 2 {
