@@ -31,6 +31,7 @@ func main() {
 	cs.register("register", handlerRegister)
 	cs.register("reset", handlerReset)
 	cs.register("users", handlerUsers)
+	cs.register("agg", handlerAgg)
 
 	input := os.Args
 	if len(input) < 2 {

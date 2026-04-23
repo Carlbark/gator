@@ -53,15 +53,6 @@ func handlerRegister(s *state, cmd command) error {
 	return nil
 }
 
-func handlerReset(s *state, cmd command) error {
-	err := s.db.ResetUsers(context.Background())
-	if err != nil {
-		return fmt.Errorf("Failed to clear table users: %w\n", err)
-	}
-	fmt.Printf("Table 'users' cleared.\n")
-	return nil
-}
-
 func handlerUsers(s *state, cmd command) error {
 	items, err := s.db.GetUsers(context.Background())
 	if err != nil {
