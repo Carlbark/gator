@@ -2,8 +2,13 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"log"
 	"time"
+
+	"github.com/carlbark/gator/internal/database"
+	"github.com/google/uuid"
 )
 
 func handlerAgg(s *state, cmd command) error {
@@ -35,12 +40,48 @@ func scrapeFeeds(s *state) error {
 	if err != nil {
 		return fmt.Errorf("Failed to fetch feed %v : %w", nextToFetch.Name, err)
 	}
-	fmt.Printf("The feed %v contains the following entries (titles):\n", rssfeed.Channel.Title)
 	for _, item := range rssfeed.Channel.Item {
-		if item.Title == "" {
+		if item.Title == "" || item.Link == "" {
 			continue
 		}
-		fmt.Printf("%-6s %v\n", "Title:", item.Title)
+		var publishedAt sql.NullTime
+		if item.PubDate != "" {
+			parsedTime, err := time.Parse(time.RFC1123Z, item.PubDate)
+			if err == nil {
+				publishedAt = sql.NullTime{
+					Time:  parsedTime,
+					Valid: true,
+				}
+			} else {
+				parsedTime, err := time.Parse(time.RFC1123, item.PubDate)
+				if err == nil {
+					publishedAt = sql.NullTime{
+						Time:  parsedTime,
+						Valid: true,
+					}
+				}
+			}
+		}
+		regData := database.CreatePostParams{
+			ID:        uuid.New(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Title:     item.Title,
+			Url:       item.Link,
+			Description: sql.NullString{
+				String: item.Description,
+				Valid:  item.Description != "",
+			},
+			PublishedAt: publishedAt,
+			FeedID:      nextToFetch.ID,
+		}
+
+		err = s.db.CreatePost(context.Background(), regData)
+		if err != nil {
+			log.Printf("Failed inserting post: %q into database: %v", item.Title, err)
+			continue
+		}
 	}
+
 	return nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/carlbark/gator/internal/database"
@@ -71,5 +72,43 @@ func handlerUnFollow(s *state, cmd command, user database.User) error {
 		return fmt.Errorf("Failed to unfollow feed: %v for the current user: %v from table: %w\n", feed.Name, user.Name, err)
 	}
 	fmt.Printf("You have unfollowed this feed: %v\n", feed.Name)
+	return nil
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	limit := int32(2)
+	if len(cmd.args) == 1 {
+		num, err := strconv.Atoi(cmd.args[0])
+		if err != nil || num < 1 {
+			fmt.Println("Faulty limit, defaulting to 2")
+		} else {
+			limit = int32(num)
+		}
+	}
+	reqData := database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  limit,
+	}
+	posts, err := s.db.GetPostsForUser(context.Background(), reqData)
+	if err != nil {
+		return fmt.Errorf("Failed to get posts for current user %v: %w\n", user.Name, err)
+	}
+	for _, post := range posts {
+		fmt.Printf("Title: %s\n", post.Title)
+		if !post.PublishedAt.Valid {
+			fmt.Println("Published: Unknown")
+		} else {
+			fmt.Printf("Published: %v\n", post.PublishedAt.Time)
+		}
+		fmt.Printf("URL: %s\n", post.Url)
+		if post.Description.Valid {
+			desc := post.Description.String
+			if len(desc) > 100 {
+				desc = desc[:100] + "..."
+			}
+			fmt.Println(desc)
+		}
+		fmt.Println("---")
+	}
 	return nil
 }

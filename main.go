@@ -37,6 +37,7 @@ func main() {
 	cs.register("follow", middlewareLoggedIn(handlerFollow))
 	cs.register("following", middlewareLoggedIn(handlerFollowing))
 	cs.register("unfollow", middlewareLoggedIn(handlerUnFollow))
+	cs.register("browse", middlewareLoggedIn(handlerBrowse))
 
 	input := os.Args
 	if len(input) < 2 {
