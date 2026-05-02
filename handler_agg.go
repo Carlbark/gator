@@ -3,13 +3,44 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 func handlerAgg(s *state, cmd command) error {
-	rssfeed, err := fetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
-	if err != nil {
-		return fmt.Errorf("Failed to aggregate feed: %w", err)
+	if len(cmd.args) < 1 {
+		return fmt.Errorf("Time between requests (1s, 1m, 1h etc) is required")
 	}
-	fmt.Printf("%+v\n", rssfeed)
+	timeBetweenReq, err := time.ParseDuration(cmd.args[0])
+	if err != nil {
+		return fmt.Errorf("Could not parse time request: %w", err)
+	}
+	fmt.Printf("Collecting feeds every %v\n", timeBetweenReq)
+	ticker := time.NewTicker(timeBetweenReq)
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
+	}
+}
+
+func scrapeFeeds(s *state) error {
+	nextToFetch, err := s.db.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		return fmt.Errorf("No feeds in database: %w\n", err)
+	}
+	err = s.db.MarkFeedFetched(context.Background(), nextToFetch.ID)
+
+	if err != nil {
+		return fmt.Errorf("Could not mark feed %v as fetched in database: %w\n", nextToFetch.Name, err)
+	}
+	rssfeed, err := fetchFeed(context.Background(), nextToFetch.Url)
+	if err != nil {
+		return fmt.Errorf("Failed to fetch feed %v : %w", nextToFetch.Name, err)
+	}
+	fmt.Printf("The feed %v contains the following entries (titles):\n", rssfeed.Channel.Title)
+	for _, item := range rssfeed.Channel.Item {
+		if item.Title == "" {
+			continue
+		}
+		fmt.Printf("%-6s %v\n", "Title:", item.Title)
+	}
 	return nil
 }
