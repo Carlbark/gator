@@ -19,13 +19,22 @@ go install github.com/carlbark/gator@latest
 
 1. Ensure PostgreSQL is running and create a database named `gator`.
 
-2. Run the database migrations:
+2. Install goose (database migration tool):
 
 ```bash
-./migrate.sh up
+go install github.com/pressly/goose/v3/cmd/goose@latest
 ```
 
-3. Create a config file at `~/.gatorconfig.json`:
+3. Run the database migrations from the `sql/schema` directory:
+
+```bash
+cd sql/schema
+goose postgres "postgres://your_username:your_password@localhost:5432/gator?sslmode=disable" up
+```
+
+Replace `your_username` and `your_password` with your actual PostgreSQL credentials.
+
+4. Create a config file at `~/.gatorconfig.json`:
 
 ```json
 {
