@@ -9,8 +9,9 @@ import (
 )
 
 type state struct {
-	db  *database.Queries
-	cfg *config.Config
+	db   *database.Queries
+	cfg  *config.Config
+	cmds *commands
 }
 
 type command struct {
@@ -42,4 +43,12 @@ func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) 
 		}
 		return handler(s, cmd, user)
 	}
+}
+
+func handlerHelp(s *state, cmd command) error {
+	fmt.Println("Available commands:")
+	for name := range s.cmds.cmds {
+		fmt.Printf("  - %s\n", name)
+	}
+	return nil
 }

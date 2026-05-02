@@ -25,8 +25,9 @@ func main() {
 	}
 	dbQueries := database.New(db)
 
-	s := &state{cfg: &cfg, db: dbQueries}
 	cs := &commands{cmds: make(map[string]func(*state, command) error)}
+	s := &state{cfg: &cfg, db: dbQueries, cmds: cs}
+	cs.register("help", handlerHelp)
 	cs.register("login", handlerLogin)
 	cs.register("register", handlerRegister)
 	cs.register("reset", handlerReset)
@@ -40,11 +41,12 @@ func main() {
 	cs.register("browse", middlewareLoggedIn(handlerBrowse))
 
 	input := os.Args
+	var cmd command
 	if len(input) < 2 {
-		fmt.Println("Command is required")
-		os.Exit(1)
+		cmd = command{name: "help"}
+	} else {
+		cmd = command{name: input[1], args: input[2:]}
 	}
-	cmd := command{name: input[1], args: input[2:]}
 	err = cs.run(s, cmd)
 	if err != nil {
 		fmt.Println("Error running command:", err)
