@@ -9,18 +9,13 @@ import (
 	"github.com/google/uuid"
 )
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.args) < 2 {
 		return fmt.Errorf("Feed name and URL are required")
 	}
 	feedname := cmd.args[0]
 	url := cmd.args[1]
 
-	currentUser := s.cfg.User
-	user, err := s.db.GetUser(context.Background(), currentUser)
-	if err != nil {
-		return fmt.Errorf("User %v does not exist in database: %w", currentUser, err)
-	}
 	regData := database.CreateFeedParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
@@ -34,6 +29,20 @@ func handlerAddFeed(s *state, cmd command) error {
 	if err != nil {
 		return fmt.Errorf("Failed to add feed (probably already exists): %w", err)
 	}
+
+	regFeedFollowData := database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID:    user.ID,
+		FeedID:    dbFeed.ID,
+	}
+
+	_, err = s.db.CreateFeedFollow(context.Background(), regFeedFollowData)
+	if err != nil {
+		return fmt.Errorf("Failed to follow feed (you are probably already following this feed): %w", err)
+	}
+
 	fmt.Printf("Feed added: %+v\n", dbFeed)
 	return nil
 }

@@ -32,8 +32,11 @@ func main() {
 	cs.register("reset", handlerReset)
 	cs.register("users", handlerUsers)
 	cs.register("agg", handlerAgg)
-	cs.register("addfeed", handlerAddFeed)
+	cs.register("addfeed", middlewareLoggedIn(handlerAddFeed))
 	cs.register("feeds", handlerFeeds)
+	cs.register("follow", middlewareLoggedIn(handlerFollow))
+	cs.register("following", middlewareLoggedIn(handlerFollowing))
+	cs.register("unfollow", middlewareLoggedIn(handlerUnFollow))
 
 	input := os.Args
 	if len(input) < 2 {

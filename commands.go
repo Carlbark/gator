@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/carlbark/gator/internal/config"
@@ -30,4 +31,15 @@ func (c *commands) run(s *state, cmd command) error {
 		return f(s, cmd)
 	}
 	return fmt.Errorf("command not found: %s", cmd.name)
+}
+
+func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) error) func(*state, command) error {
+	return func(s *state, cmd command) error {
+		currentUser := s.cfg.User
+		user, err := s.db.GetUser(context.Background(), currentUser)
+		if err != nil {
+			return fmt.Errorf("User %v does not exist in database: %w", currentUser, err)
+		}
+		return handler(s, cmd, user)
+	}
 }
